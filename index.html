@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>rummy_project</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    <script>
+      // Extend playing-card to support jokers before the library loads
+      // This intercepts the definition
+      const originalDefine = customElements.define;
+      customElements.define = function (name, constructor, options) {
+        if (name === 'playing-card') {
+          // Extend the constructor to handle jokers
+          const ExtendedCard = class extends constructor {
+            connectedCallback() {
+              if (super.connectedCallback) {
+                super.connectedCallback();
+              }
+
+              // Handle jokers after the card is connected
+              const rank = this.getAttribute('rank');
+              const suit = this.getAttribute('suit');
+              if (rank === 'joker') {
+                setTimeout(() => {
+                  if (!this.querySelector('.joker-overlay')) {
+                    // Determine which joker to use based on suit or alternate
+                    // Using suit as a way to differentiate: 'spades' or 'hearts' for red, others for black
+                    // Or you can use a counter to alternate
+                    const isRedJoker = suit === 'hearts' || suit === 'diamonds';
+                    const jokerSvg = isRedJoker
+                      ? '/joker-red.svg'
+                      : '/joker-black.svg';
+
+                    // Hide the default card image and show joker SVG
+                    const img = this.querySelector('img');
+                    if (img) {
+                      img.style.display = 'none';
+                    }
+
+                    const jokerOverlay = document.createElement('img');
+                    jokerOverlay.className = 'joker-overlay';
+                    jokerOverlay.src = jokerSvg;
+                    jokerOverlay.style.cssText = `
+                      position: absolute;
+                      top: 0;
+                      left: 0;
+                      width: 100%;
+                      height: 100%;
+                      object-fit: contain;
+                      z-index: 10;
+                      pointer-events: none;
+                    `;
+                    this.style.position = 'relative';
+                    this.appendChild(jokerOverlay);
+                  }
+                }, 100);
+              }
+            }
+          };
+          return originalDefine.call(this, name, ExtendedCard, options);
+        }
+        return originalDefine.call(this, name, constructor, options);
+      };
+    </script>
+    <script src="https://cardmeister.github.io/elements.cardmeister.full.js"></script>
+  </body>
+</html>
